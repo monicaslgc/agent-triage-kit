@@ -1,4 +1,5 @@
 # agentops-triage-kit
+[![tests](https://github.com/monicaslgc/agent-triage-kit/actions/workflows/tests.yml/badge.svg)](https://github.com/monicaslgc/agent-triage-kit/actions/workflows/tests.yml)
 
 A small, dependency-free demo of a multi-agent triage and escalation pipeline. Tickets come in, get classified, get checked against known issue patterns, and either get auto-resolved or handed off to a human, with a full audit trail along the way.
 
