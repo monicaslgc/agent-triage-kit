@@ -1,0 +1,32 @@
+[
+  {
+    "id": "T-1001",
+    "title": "Checkout webhook returning 500",
+    "body": "Customers report checkout stuck. Our integration callback endpoint is returning 500 for the last 20 minutes.",
+    "reporter": "monitoring-bot"
+  },
+  {
+    "id": "T-1002",
+    "title": "Nightly sync job: connection refused to database",
+    "body": "The nightly sync failed with 'connection refused' when connecting to the reporting database.",
+    "reporter": "oncall"
+  },
+  {
+    "id": "T-1003",
+    "title": "User can't log in, token expired error",
+    "body": "A user says they get 401 unauthorized and 'token expired' when trying to log in this morning.",
+    "reporter": "support-team"
+  },
+  {
+    "id": "T-1004",
+    "title": "Full outage - all services down",
+    "body": "Critical: dashboard is completely down, looks like a data loss risk on the primary cluster.",
+    "reporter": "monitoring-bot"
+  },
+  {
+    "id": "T-1005",
+    "title": "Weird thing in the export",
+    "body": "Something looks off in yesterday's export file, not sure what exactly.",
+    "reporter": "analyst"
+  }
+]
