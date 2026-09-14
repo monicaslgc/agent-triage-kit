@@ -1,14 +1,14 @@
 # agentops-triage-kit
 
-A small, dependency-free demo of a **multi-agent triage & escalation pipeline** — the pattern behind a lot of "AI ops" tooling: incoming tickets get classified, investigated against known issue patterns, and either auto-resolved or handed to a human, with a full audit trail at every step.
+A small, dependency-free demo of a multi-agent triage and escalation pipeline. Tickets come in, get classified, get checked against known issue patterns, and either get auto-resolved or handed off to a human, with a full audit trail along the way.
 
-This is a portfolio/demo project. It's original code, not derived from any employer or client system — it's meant to show the shape of a problem I've worked on professionally (automating triage/escalation for engineering and support workflows), built from scratch as a clean, standalone example.
+This is a portfolio project, not a copy of anything I've built at work. It's original code from scratch, meant to show the shape of a problem I deal with professionally (automating triage/escalation for engineering and support workflows) without pulling in any actual employer or client code.
 
 ## Why this pattern
 
-Fully autonomous "AI agents" are easy to demo and hard to trust in production. The interesting engineering problem isn't the model call — it's the pipeline around it: how confident does an agent need to be before it acts unsupervised, what gets logged for audit, and where's the seam that lets you swap a rule-based stub for a real model without touching the orchestration.
+Autonomous "AI agents" are easy to demo and hard to actually trust. In my experience the hard part was never the model call itself, it's the pipeline around it: how confident does an agent need to be before it's allowed to act without a human, what gets logged so you can audit it later, and where do you leave room to swap a rule-based stub for a real model without rewriting the orchestration.
 
-This project is a minimal, readable answer to that problem.
+This project is my attempt at a minimal, readable answer to that.
 
 ## Architecture
 
@@ -21,17 +21,17 @@ flowchart LR
     ESC -->|confidence < threshold OR critical| HU[Escalated to human]
 ```
 
-Three single-responsibility agents run in a fixed pipeline:
+Three agents run in a fixed pipeline, each with one job:
 
-- **TriageAgent** — classifies severity (low/medium/high/critical) and category (auth/integration/infrastructure/data) from the ticket text.
-- **InvestigatorAgent** — matches the ticket against a small runbook of known issue patterns and proposes a diagnosis + next step, each with a confidence score.
-- **EscalationAgent** — the policy gate: critical tickets always go to a human; everything else auto-resolves only if the investigation's confidence clears a threshold (`MIN_AUTO_RESOLVE_CONFIDENCE`, default `0.7`).
+- **TriageAgent** classifies severity (low/medium/high/critical) and category (auth/integration/infrastructure/data) from the ticket text.
+- **InvestigatorAgent** checks the ticket against a small runbook of known issue patterns and proposes a diagnosis plus a next step, with a confidence score attached.
+- **EscalationAgent** is the actual policy gate. Critical tickets always go to a human. Everything else only auto-resolves if the investigation's confidence clears a threshold (`MIN_AUTO_RESOLVE_CONFIDENCE`, 0.7 by default).
 
-Every agent appends an `Action` to the ticket's `Report`, so the final output is a full audit trail of what each agent decided and why — not just a final verdict.
+Every agent appends an `Action` to the ticket's `Report`, so what you get at the end isn't just a verdict, it's a trail of what each step decided and why.
 
 ### The LLM seam
 
-Every agent accepts an optional `brain: LLMClient | None`. By default it's `None` and agents fall back to deterministic rules, which is what keeps this project dependency-free, fast, and fully unit-testable offline. `agentops/brain.py` defines the `LLMClient` protocol — implement `.complete(prompt) -> str` against whatever provider you use and pass it to `Orchestrator(brain=...)` to swap in real model calls without touching any orchestration logic.
+Each agent takes an optional `brain: LLMClient | None`. Left as `None` (the default here), agents fall back to plain rules, which is why this whole thing runs offline with no dependencies and is easy to unit test. `agentops/brain.py` defines the `LLMClient` protocol; implement `.complete(prompt) -> str` for whatever provider you're using and pass it to `Orchestrator(brain=...)` to move from rules to real model calls. None of the orchestration logic has to change either way.
 
 ## Project layout
 
@@ -65,7 +65,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-No API keys or external services required — everything runs locally.
+No API keys, no external services. Everything runs locally.
 
 ## Example output
 
@@ -88,10 +88,10 @@ Ticket T-1003: User can't log in, token expired error
 
 ## Extending it
 
-- Add a new `Agent` subclass and slot it into `Orchestrator(agents=[...])`.
-- Replace `runbook.match()` with a real knowledge base (vector search over past incidents, a wiki API, etc.) — the `InvestigatorAgent` interface doesn't change.
-- Implement `LLMClient` and pass `brain=` to any/all agents to move from rules to model calls incrementally, one agent at a time.
+- Add a new `Agent` subclass and drop it into `Orchestrator(agents=[...])`.
+- Swap `runbook.match()` for something real, like a vector search over past incidents or a wiki API. The `InvestigatorAgent` interface doesn't need to change.
+- Implement `LLMClient` and pass `brain=` to one agent at a time as you move from rules to actual model calls, instead of doing it all at once.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
