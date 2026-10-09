@@ -1,0 +1,11 @@
+flowchart TD
+    A[Lifecycle policy decision] --> B[Create immutable audit record]
+    B --> C{requires_human_review?}
+    C -->|No| D[NOT_REQUIRED]
+    C -->|Yes| E[PENDING]
+    E --> F{Reviewer disposition}
+    F -->|APPROVE| G[Record APPROVED + rationale]
+    F -->|REJECT| H[Record REJECTED + rationale]
+    G --> I[Original policy decision remains unchanged]
+    H --> I
+    I --> J[No order mutation or external side effect]
