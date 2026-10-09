@@ -36,66 +36,66 @@ Each agent takes an optional `brain: LLMClient | None`. Left as `None` (the defa
 
 ## Order lifecycle consistency example
 
-A second, self-contained portfolio example explores a different operational workflow: checking whether an order event is valid for its current state. It uses synthetic data and deterministic rules; it is not a live commerce integration or an implementation of any employer's system.
+A second, self-contained portfolio example demonstrates a deterministic back-office workflow for order events. It validates the state transition, identifies duplicate event IDs, and blocks updates based on stale order versions. The examples are synthetic; this is not a live commerce integration or an implementation of any employer's system.
 
 ```mermaid
 flowchart TD
-    A[Receive order event] --> B{Known status and event?}
-    B -->|No| R[Reject and flag for review]
-    B -->|Yes| C{Transition allowed?}
-    C -->|No| X[Block invalid transition]
-    C -->|Yes| D[Return proposed next state]
-    R --> E[Explain decision and reason]
-    X --> E
-    D --> E
-    E --> F[Human or authorized service decides next action]
+    A[Receive event] --> B{event_id valid?}
+    B -->|No| I[INVALID_INPUT + review]
+    B -->|Yes| C{Already processed?}
+    C -->|Yes| D[DUPLICATE_EVENT no-op]
+    C -->|No| E{Expected version matches current?}
+    E -->|No| F[VERSION_CONFLICT + review]
+    E -->|Yes| G{Transition allowed?}
+    G -->|No| H[BLOCKED_INVALID_TRANSITION]
+    G -->|Yes| J[ALLOWED + proposed next version]
 ```
 
-- [Read the workflow and acceptance criteria](./examples/order-lifecycle-consistency/README.md)
+- [Read the workflow, decision contract and acceptance criteria](./examples/order-lifecycle-consistency/README.md)
 - [View the state machine source](./examples/order-lifecycle-consistency/workflow.mmd)
-- [Try the deterministic policy implementation](./examples/order_lifecycle_consistency/order_lifecycle.py)
+- [Try the deterministic policy implementation](./src/agentops/order_lifecycle.py)
 - [Explore the reusable skill definition](./skills/order-lifecycle-consistency/SKILL.md)
 
-The policy deliberately does not update an order or trigger payment, cancellation, shipment, or refund actions. That separation is intentional: an AI assistant can help explain an exception, but should not invent or override the approved state-transition rules.
+The evaluator does not persist event IDs, update orders, increment stored versions, or trigger payment, cancellation, shipment, or refund actions. A real system would need an atomic event ledger and conditional version update to handle concurrent workers safely.
 
 ## Project layout
 
 ```
 src/agentops/
-  models.py        # Ticket, Action, Report, Severity, Category
-  agent.py         # Agent base class
-  brain.py         # LLMClient protocol (the rule-based <-> model seam)
-  runbook.py       # known-issue knowledge base + matcher
-  orchestrator.py  # runs the agent pipeline
-  agents/
-    triage.py
-    investigator.py
-    escalation.py
+  models.py             # Ticket, Action, Report, Severity, Category
+  agent.py              # Agent base class
+  brain.py              # LLMClient protocol (rule-based <-> model seam)
+  runbook.py            # known-issue knowledge base + matcher
+  orchestrator.py       # runs the ticket pipeline
+  order_lifecycle.py    # deterministic order policy + idempotency/version checks
+  agents/               # triage, investigator, escalation
 examples/
-  tickets.json     # sample synthetic tickets
-  run_demo.py      # ticket triage CLI
-  order-lifecycle-consistency/ # order workflow spec, examples and Mermaid state machine
-  order_lifecycle_consistency/ # deterministic policy and tests
+  tickets.json
+  run_demo.py           # ticket triage CLI
+  order-lifecycle-consistency/
+    README.md            # workflow, decisions, acceptance criteria
+    orders.json          # synthetic edge-case fixtures
+    workflow.mmd         # Mermaid state machine
+  order_lifecycle_consistency/
+    run_demo.py          # lifecycle CLI
 skills/
-  order-lifecycle-consistency/SKILL.md # reusable skill instructions
+  order-lifecycle-consistency/SKILL.md
 tests/
   test_orchestrator.py
   test_runbook.py
+  test_order_lifecycle.py
 ```
 
 ## Running it
 
 ```bash
+pip install -e ".[dev]"
 python examples/run_demo.py
 python -m examples.order_lifecycle_consistency.run_demo
-```
-
-```bash
-pip install -e ".[dev]"
 pytest
 ```
 
-No API keys, no external services. Everything runs locally.
+No API keys or external services are needed. Everything runs locally.
 
 ## Example output
 
@@ -118,9 +118,9 @@ Ticket T-1003: User can't log in, token expired error
 ## Extending it
 
 - Add a new `Agent` subclass and drop it into `Orchestrator(agents=[...])`.
-- Swap `runbook.match()` for something real, like a vector search over past incidents or a wiki API. The `InvestigatorAgent` interface doesn't need to change.
-- Implement `LLMClient` and pass `brain=` to one agent at a time as you move from rules to actual model calls, instead of doing it all at once.
-- Extend the order workflow with duplicate-event detection, version checks, and an explicit human-review queue before considering any real integration.
+- Swap `runbook.match()` for vector search over past incidents or a wiki API.
+- Implement `LLMClient` and pass `brain=` to one agent at a time as you move from rules to real model calls.
+- Extend the order workflow with a simulated atomic repository and concurrency race tests before considering any real integration.
 
 ## License
 
