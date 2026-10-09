@@ -19,7 +19,7 @@ Order workflows can become inconsistent when events arrive out of sequence, inte
 Requires Python 3.11+; no third-party dependencies.
 
 ```bash
-python examples/order-lifecycle-consistency/run_demo.py
+python -m examples.order_lifecycle_consistency.run_demo
 pytest
 ```
 
