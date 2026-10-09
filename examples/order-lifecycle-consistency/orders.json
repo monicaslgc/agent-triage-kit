@@ -1,30 +1,79 @@
 [
   {
     "order_id": "DEMO-1001",
+    "event_id": "evt-1001",
     "current_status": "CREATED",
     "event": "CONFIRM",
-    "expected_allowed": true,
+    "processed_event_ids": [],
+    "expected_version": 1,
+    "current_version": 1,
+    "expected_decision": "ALLOWED",
     "expected_next_status": "CONFIRMED"
   },
   {
     "order_id": "DEMO-1002",
+    "event_id": "evt-1002",
     "current_status": "CONFIRMED",
     "event": "SHIP",
-    "expected_allowed": false,
+    "processed_event_ids": [],
+    "expected_version": 3,
+    "current_version": 3,
+    "expected_decision": "BLOCKED_INVALID_TRANSITION",
     "expected_next_status": null
   },
   {
     "order_id": "DEMO-1003",
+    "event_id": "evt-1003",
     "current_status": "DELIVERED",
     "event": "REQUEST_RETURN",
-    "expected_allowed": true,
+    "processed_event_ids": [],
+    "expected_version": 8,
+    "current_version": 8,
+    "expected_decision": "ALLOWED",
     "expected_next_status": "RETURN_REQUESTED"
   },
   {
     "order_id": "DEMO-1004",
+    "event_id": "evt-1004",
     "current_status": "CANCELLED",
     "event": "CONFIRM",
-    "expected_allowed": false,
+    "processed_event_ids": [],
+    "expected_version": 2,
+    "current_version": 2,
+    "expected_decision": "BLOCKED_INVALID_TRANSITION",
+    "expected_next_status": null
+  },
+  {
+    "order_id": "DEMO-1005",
+    "event_id": "evt-1005",
+    "current_status": "CONFIRMED",
+    "event": "CONFIRM",
+    "processed_event_ids": ["evt-1005"],
+    "expected_version": 3,
+    "current_version": 4,
+    "expected_decision": "DUPLICATE_EVENT",
+    "expected_next_status": null
+  },
+  {
+    "order_id": "DEMO-1006",
+    "event_id": "evt-1006",
+    "current_status": "CREATED",
+    "event": "CONFIRM",
+    "processed_event_ids": [],
+    "expected_version": 1,
+    "current_version": 2,
+    "expected_decision": "VERSION_CONFLICT",
+    "expected_next_status": null
+  },
+  {
+    "order_id": "DEMO-1007",
+    "event_id": "",
+    "current_status": "CREATED",
+    "event": "CONFIRM",
+    "processed_event_ids": [],
+    "expected_version": 0,
+    "current_version": 0,
+    "expected_decision": "INVALID_INPUT",
     "expected_next_status": null
   }
 ]
