@@ -53,6 +53,7 @@ flowchart TD
 
 - [Read the workflow, decision contract and acceptance criteria](./examples/order-lifecycle-consistency/README.md)
 - [View the state machine source](./examples/order-lifecycle-consistency/workflow.mmd)
+- [View the idempotency and version-check flow](./examples/order-lifecycle-consistency/decision-flow.mmd)
 - [Try the deterministic policy implementation](./src/agentops/order_lifecycle.py)
 - [Explore the reusable skill definition](./skills/order-lifecycle-consistency/SKILL.md)
 
