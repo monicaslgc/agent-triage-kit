@@ -59,6 +59,35 @@ flowchart TD
 
 The evaluator does not persist event IDs, update orders, increment stored versions, or trigger payment, cancellation, shipment, or refund actions. A real system would need an atomic event ledger and conditional version update to handle concurrent workers safely.
 
+## Audit trail and human review
+
+A third backend-only demo records lifecycle decisions as immutable structured audit records and captures explicit human review outcomes for decisions that require review. A reviewer disposition does **not** rewrite the original policy decision or execute an order transition.
+
+```mermaid
+flowchart TD
+    A[Lifecycle policy decision] --> B[Create immutable audit record]
+    B --> C{Review required?}
+    C -->|No| D[NOT_REQUIRED]
+    C -->|Yes| E[PENDING]
+    E --> F{Human disposition}
+    F -->|Approve| G[Record APPROVED]
+    F -->|Reject| H[Record REJECTED]
+    G --> I[Original decision preserved]
+    H --> I
+    I --> J[No order mutation or external side effect]
+```
+
+- [Read the audit trail and review workflow](./examples/audit-trail-human-review/README.md)
+- [View the reusable skill](./skills/audit-trail-human-review/SKILL.md)
+- [Inspect the audit record and review functions](./src/agentops/audit_trail.py)
+- [Run the synthetic demonstration](./examples/audit_trail_human_review/run_demo.py)
+
+```bash
+python -m examples.audit_trail_human_review.run_demo
+```
+
+Audit records are immutable values in this demo, not durable storage. Production use would need append-only persistence, access controls, integrity/retention policies, and safe atomic coordination with any real state change.
+
 ## Project layout
 
 ```
@@ -69,6 +98,7 @@ src/agentops/
   runbook.py            # known-issue knowledge base + matcher
   orchestrator.py       # runs the ticket pipeline
   order_lifecycle.py    # deterministic order policy + idempotency/version checks
+  audit_trail.py        # immutable decision records + human review metadata
   agents/               # triage, investigator, escalation
 examples/
   tickets.json
@@ -79,12 +109,16 @@ examples/
     workflow.mmd         # Mermaid state machine
   order_lifecycle_consistency/
     run_demo.py          # lifecycle CLI
+  audit_trail_human_review/
+    run_demo.py          # audit/review CLI
 skills/
   order-lifecycle-consistency/SKILL.md
+  audit-trail-human-review/SKILL.md
 tests/
   test_orchestrator.py
   test_runbook.py
   test_order_lifecycle.py
+  test_audit_trail.py
 ```
 
 ## Running it
