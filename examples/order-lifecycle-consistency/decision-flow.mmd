@@ -1,0 +1,10 @@
+flowchart TD
+    A[Receive event] --> B{event_id valid?}
+    B -->|No| I[INVALID_INPUT + review]
+    B -->|Yes| C{Already processed?}
+    C -->|Yes| D[DUPLICATE_EVENT no-op]
+    C -->|No| E{Expected version matches current?}
+    E -->|No| F[VERSION_CONFLICT + review]
+    E -->|Yes| G{Transition allowed?}
+    G -->|No| H[BLOCKED_INVALID_TRANSITION]
+    G -->|Yes| J[ALLOWED + proposed next version]
