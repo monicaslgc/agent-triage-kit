@@ -1,5 +1,8 @@
 """Tests for deterministic lifecycle, idempotency, and version policy."""
 
+import json
+from pathlib import Path
+
 from agentops.order_lifecycle import evaluate_order_event, evaluate_transition
 
 
@@ -122,3 +125,25 @@ def test_negative_version_requires_review():
     )
     assert decision.decision == "INVALID_INPUT"
     assert decision.requires_human_review
+
+
+def test_synthetic_fixture_decisions_match_expected_results():
+    fixture_path = (
+        Path(__file__).resolve().parents[1]
+        / "examples"
+        / "order-lifecycle-consistency"
+        / "orders.json"
+    )
+    examples = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    for example in examples:
+        result = evaluate_order_event(
+            example["current_status"],
+            example["event"],
+            event_id=example["event_id"],
+            processed_event_ids=example["processed_event_ids"],
+            expected_version=example["expected_version"],
+            current_version=example["current_version"],
+        )
+        assert result.decision == example["expected_decision"], example["order_id"]
+        assert result.next_status == example["expected_next_status"], example["order_id"]
