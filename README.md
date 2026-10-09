@@ -34,6 +34,30 @@ Every agent appends an `Action` to the ticket's `Report`, so what you get at the
 
 Each agent takes an optional `brain: LLMClient | None`. Left as `None` (the default here), agents fall back to plain rules, which is why this whole thing runs offline with no dependencies and is easy to unit test. `agentops/brain.py` defines the `LLMClient` protocol; implement `.complete(prompt) -> str` for whatever provider you're using and pass it to `Orchestrator(brain=...)` to move from rules to real model calls. None of the orchestration logic has to change either way.
 
+## Order lifecycle consistency example
+
+A second, self-contained portfolio example explores a different operational workflow: checking whether an order event is valid for its current state. It uses synthetic data and deterministic rules; it is not a live commerce integration or an implementation of any employer's system.
+
+```mermaid
+flowchart TD
+    A[Receive order event] --> B{Known status and event?}
+    B -->|No| R[Reject and flag for review]
+    B -->|Yes| C{Transition allowed?}
+    C -->|No| X[Block invalid transition]
+    C -->|Yes| D[Return proposed next state]
+    R --> E[Explain decision and reason]
+    X --> E
+    D --> E
+    E --> F[Human or authorized service decides next action]
+```
+
+- [Read the workflow and acceptance criteria](./examples/order-lifecycle-consistency/README.md)
+- [View the state machine source](./examples/order-lifecycle-consistency/workflow.mmd)
+- [Try the deterministic policy implementation](./examples/order_lifecycle_consistency/order_lifecycle.py)
+- [Explore the reusable skill definition](./skills/order-lifecycle-consistency/SKILL.md)
+
+The policy deliberately does not update an order or trigger payment, cancellation, shipment, or refund actions. That separation is intentional: an AI assistant can help explain an exception, but should not invent or override the approved state-transition rules.
+
 ## Project layout
 
 ```
@@ -49,7 +73,11 @@ src/agentops/
     escalation.py
 examples/
   tickets.json     # sample synthetic tickets
-  run_demo.py      # CLI entry point
+  run_demo.py      # ticket triage CLI
+  order-lifecycle-consistency/ # order workflow spec, examples and Mermaid state machine
+  order_lifecycle_consistency/ # deterministic policy and tests
+skills/
+  order-lifecycle-consistency/SKILL.md # reusable skill instructions
 tests/
   test_orchestrator.py
   test_runbook.py
@@ -92,6 +120,7 @@ Ticket T-1003: User can't log in, token expired error
 - Add a new `Agent` subclass and drop it into `Orchestrator(agents=[...])`.
 - Swap `runbook.match()` for something real, like a vector search over past incidents or a wiki API. The `InvestigatorAgent` interface doesn't need to change.
 - Implement `LLMClient` and pass `brain=` to one agent at a time as you move from rules to actual model calls, instead of doing it all at once.
+- Extend the order workflow with duplicate-event detection, version checks, and an explicit human-review queue before considering any real integration.
 
 ## License
 
