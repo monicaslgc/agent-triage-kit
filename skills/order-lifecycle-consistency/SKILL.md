@@ -1,47 +1,47 @@
 ---
 name: order-lifecycle-consistency
-description: Evaluate order status/event combinations against an explicit lifecycle policy, explain invalid transitions, and identify cases that require human review. Use for synthetic order-workflow analysis and test-case generation; never assume access to a live commerce system.
+description: Evaluate order status/event combinations against an explicit lifecycle policy, detect duplicate event IDs, identify stale-version conflicts, and explain when human review is required. Use for synthetic order-workflow analysis and test-case generation; never assume access to a live commerce system.
 ---
 
 # Order Lifecycle Consistency Skill
 
 ## Purpose
 
-Help a product, operations, or engineering team reason about order lifecycle events and identify state inconsistencies before downstream actions are taken.
+Help product, operations, and engineering teams reason about order lifecycle events and detect unsafe state changes before a downstream service or authorized person acts.
 
-This skill is a portfolio artifact. It is not a live integration and does not describe any employer's internal system.
+This is an original portfolio artifact using synthetic examples. It is not a live integration and does not describe an employer's internal system.
 
 ## Required inputs
 
-For each order event, collect:
+For a proposed event, provide:
 
 - `order_id`: synthetic or appropriately authorized identifier
-- `current_status`: the state reported by the source of truth
-- `event`: the event being proposed or received
-- `event_id` and `order_version`, when available, for future idempotency/concurrency checks
+- `current_status`: status from the designated source of truth
+- `event`: proposed event
+- `event_id`: stable unique identifier used to recognize retries
+- `processed_event_ids`: IDs already recorded as processed for this order
+- `expected_version`: order version observed by the event producer
+- `current_version`: latest order version read by the evaluator
 
-If required fields are missing or ambiguous, ask for clarification or mark the case as `NEEDS_REVIEW`. Do not infer a missing status.
+Missing event IDs or invalid versions must produce `INVALID_INPUT` and require review. Never invent an identifier or version.
 
-## Procedure
+## Evaluation procedure
 
-1. Normalize status and event casing/whitespace for comparison only.
-2. Check that the status and event belong to the known policy vocabulary.
-3. Look up the exact pair `(current_status, event)` in the approved transition table.
-4. Return one of:
-   - `ALLOWED`: transition exists and a next status is defined.
-   - `BLOCKED_INVALID_TRANSITION`: known event is not allowed from this status.
-   - `NEEDS_REVIEW_UNKNOWN_VALUE`: status or event is unknown or missing.
-5. Explain the decision using the current status, event, expected next status (if any), and reason.
-6. Recommend that a downstream system or authorized human perform any actual state change. This skill only evaluates; it must not claim to have updated an order.
+1. Normalize status and event casing/whitespace for comparison.
+2. Validate that the event ID is present and both versions are non-negative integers.
+3. Check whether the event ID has already been processed. If so, return `DUPLICATE_EVENT` as a no-op. Duplicate detection takes precedence over version comparison so a retried event is not misclassified just because its original version is now stale.
+4. For a new event, compare `expected_version` with `current_version`. A mismatch returns `VERSION_CONFLICT`, blocks the proposed transition, and requires human or caller-side reconciliation.
+5. Validate the exact `(current_status, event)` pair against the approved transition table.
+6. Return a structured decision and reason. Never claim that state has actually changed.
 
-## Safety and reliability rules
+## Decision values
 
-- Never invent a valid transition.
-- Never override deterministic business rules with an LLM guess.
-- Never trigger payment, cancellation, shipment, refund, or customer communication.
-- Treat duplicate events and concurrent updates as unresolved until idempotency and version-check rules are explicitly specified.
-- Escalate conflicting source-of-truth data to an authorized human.
-- Use synthetic data in portfolio examples; do not include real customer, order, or employer-confidential information.
+- `ALLOWED`: event is valid for this status and the expected version matches. `next_version` proposes the version after a successful commit.
+- `BLOCKED_INVALID_TRANSITION`: known event is not allowed from the current status.
+- `NEEDS_REVIEW_UNKNOWN_VALUE`: status or event is unknown.
+- `DUPLICATE_EVENT`: event ID was already processed; treat as a no-op.
+- `VERSION_CONFLICT`: the producer's expected version is stale.
+- `INVALID_INPUT`: event ID or version metadata is missing or invalid.
 
 ## Output contract
 
@@ -51,19 +51,36 @@ Return structured fields:
 {
   "order_id": "DEMO-1001",
   "decision": "ALLOWED",
+  "event_id": "evt-1001",
   "current_status": "CREATED",
   "event": "CONFIRM",
   "next_status": "CONFIRMED",
-  "reason": "Allowed transition: CREATED -> CONFIRMED",
-  "requires_human_review": false
+  "expected_version": 4,
+  "current_version": 4,
+  "next_version": 5,
+  "requires_human_review": false,
+  "reason": "Allowed transition: CREATED -> CONFIRMED"
 }
 ```
 
-## Evaluation examples
+For `DUPLICATE_EVENT`, return no next status and do not propose another version increment. For `VERSION_CONFLICT`, return no next status and set `requires_human_review=true`.
 
-- `CREATED + CONFIRM` -> `ALLOWED`, next status `CONFIRMED`.
-- `CONFIRMED + SHIP` -> `BLOCKED_INVALID_TRANSITION`; processing must start first.
-- `CANCELLED + CONFIRM` -> `BLOCKED_INVALID_TRANSITION`; terminal state.
-- Unknown status -> `NEEDS_REVIEW_UNKNOWN_VALUE`, with no next status.
+## Reliability boundaries
 
-If the approved transition table changes, update the tests and documentation together before using the new policy.
+- This evaluator is a pure decision function. It does not persist an event ledger, mutate orders, increment stored versions, or call external systems.
+- A production caller must atomically check-and-record the event ID and commit the state/version update. An in-memory list or pre-read alone cannot guarantee idempotency across concurrent workers or processes.
+- Never override deterministic policy with an LLM guess.
+- Never trigger payment, cancellation, shipment, refund, or customer communication.
+- Escalate conflicting source-of-truth data to an authorized human.
+- Use synthetic data in portfolio examples; do not include real customer, order, or employer-confidential information.
+
+## Synthetic evaluation cases
+
+- `CREATED + CONFIRM`, matching version -> `ALLOWED`, next status `CONFIRMED`.
+- `CONFIRMED + SHIP`, matching version -> `BLOCKED_INVALID_TRANSITION`.
+- Previously processed event ID -> `DUPLICATE_EVENT`, no state change.
+- New event with stale expected version -> `VERSION_CONFLICT`, human review required.
+- Missing event ID or negative version -> `INVALID_INPUT`.
+- Unknown status or event -> `NEEDS_REVIEW_UNKNOWN_VALUE`.
+
+If the approved transition table changes, update the tests, fixtures, diagrams, and documentation together before using the new policy.
