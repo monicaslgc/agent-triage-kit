@@ -16,9 +16,10 @@ Order workflows can become inconsistent when events arrive out of sequence, inte
 
 ## Quick start
 
-Requires Python 3.11+; no third-party dependencies.
+Requires Python 3.11+. The runtime logic has no third-party dependencies. Install the package and test dependency from the repository root:
 
 ```bash
+pip install -e ".[dev]"
 python -m examples.order_lifecycle_consistency.run_demo
 pytest
 ```
@@ -46,7 +47,7 @@ stateDiagram-v2
 ## Example
 
 ```python
-from examples.order_lifecycle_consistency.order_lifecycle import evaluate_transition
+from agentops.order_lifecycle import evaluate_transition
 
 decision = evaluate_transition("CONFIRMED", "SHIP")
 print(decision.allowed)  # False: processing must start before shipment
