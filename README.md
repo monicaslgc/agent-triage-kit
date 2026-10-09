@@ -87,6 +87,7 @@ tests/
 
 ```bash
 python examples/run_demo.py
+python -m examples.order_lifecycle_consistency.run_demo
 ```
 
 ```bash
@@ -108,7 +109,6 @@ Ticket T-1004: Full outage - all services down
 
 Ticket T-1003: User can't log in, token expired error
   severity=high category=auth
-  [triage] classified as high/auth (confidence=0.90)
   [investigator] Likely an expired or misconfigured auth credential. (confidence=0.80)
   [escalation] auto-resolved (confidence=0.80)
   -> resolved
