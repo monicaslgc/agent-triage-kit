@@ -1,0 +1,30 @@
+[
+  {
+    "order_id": "DEMO-1001",
+    "current_status": "CREATED",
+    "event": "CONFIRM",
+    "expected_allowed": true,
+    "expected_next_status": "CONFIRMED"
+  },
+  {
+    "order_id": "DEMO-1002",
+    "current_status": "CONFIRMED",
+    "event": "SHIP",
+    "expected_allowed": false,
+    "expected_next_status": null
+  },
+  {
+    "order_id": "DEMO-1003",
+    "current_status": "DELIVERED",
+    "event": "REQUEST_RETURN",
+    "expected_allowed": true,
+    "expected_next_status": "RETURN_REQUESTED"
+  },
+  {
+    "order_id": "DEMO-1004",
+    "current_status": "CANCELLED",
+    "event": "CONFIRM",
+    "expected_allowed": false,
+    "expected_next_status": null
+  }
+]
