@@ -4,25 +4,29 @@
 
 ## Problem
 
-Order workflows can become inconsistent when events arrive out of sequence, integrations retry requests, or a downstream system reports a state that is not valid for the order's current status. A workflow should distinguish a valid transition from a suspicious one before any downstream action is taken.
+Order workflows can become inconsistent when events arrive out of sequence, integrations retry requests, or two processes try to update the same order based on different versions. A safe workflow must reject invalid transitions, identify retries, and block stale writes before a downstream action is considered.
 
 ## What this demo does
 
 - Defines an explicit order state machine and allowed events.
-- Evaluates transitions deterministically; no LLM is used to decide whether a transition is valid.
-- Returns a structured decision with the current state, event, proposed next state and reason.
-- Includes synthetic examples and tests for valid, invalid and unknown transitions.
-- Keeps the policy layer separate from any integration or side-effecting action.
+- Evaluates transitions deterministically; no LLM decides whether a transition is valid.
+- Detects duplicate event IDs and returns a no-op decision.
+- Checks an event's expected order version against the current version.
+- Returns an explainable decision and proposed next state/version without mutating an order.
+- Includes synthetic fixtures and automated tests for edge cases.
+- Keeps the policy layer separate from integrations and side effects.
 
 ## Quick start
 
-Requires Python 3.11+. The runtime logic has no third-party dependencies. Install the package and test dependency from the repository root:
+Requires Python 3.11+. From the repository root:
 
 ```bash
 pip install -e ".[dev]"
 python -m examples.order_lifecycle_consistency.run_demo
 pytest
 ```
+
+The demo prints seven synthetic cases, including a valid transition, invalid transition, terminal state, duplicate event, stale-version conflict, and invalid input. Each row reports whether the actual decision matches the fixture's expected result.
 
 ## State machine
 
@@ -44,35 +48,67 @@ stateDiagram-v2
     RETURNED --> [*]
 ```
 
+## Decision flow
+
+```mermaid
+flowchart TD
+    A[Receive event] --> B{event_id valid?}
+    B -->|No| I[INVALID_INPUT + review]
+    B -->|Yes| C{Already processed?}
+    C -->|Yes| D[DUPLICATE_EVENT no-op]
+    C -->|No| E{Expected version equals current?}
+    E -->|No| F[VERSION_CONFLICT + review]
+    E -->|Yes| G{Transition allowed?}
+    G -->|No| H[BLOCKED_INVALID_TRANSITION]
+    G -->|Yes| J[ALLOWED + proposed next version]
+```
+
 ## Example
 
 ```python
-from agentops.order_lifecycle import evaluate_transition
+from agentops.order_lifecycle import evaluate_order_event
 
-decision = evaluate_transition("CONFIRMED", "SHIP")
-print(decision.allowed)  # False: processing must start before shipment
-print(decision.reason)
+decision = evaluate_order_event(
+    "CREATED",
+    "CONFIRM",
+    event_id="evt-1001",
+    processed_event_ids=set(),
+    expected_version=4,
+    current_version=4,
+)
+assert decision.decision == "ALLOWED"
+assert decision.next_status == "CONFIRMED"
+assert decision.next_version == 5
 ```
 
-## Design decisions
+## Decision values
 
-1. **Fail closed:** unknown statuses and events are rejected, not guessed.
-2. **No hidden side effects:** evaluation returns a decision; it does not update an order or call external systems.
-3. **Explainable outcomes:** every decision includes a human-readable reason.
-4. **Policy before AI:** state integrity is a deterministic business rule. An LLM may help summarize an exception, but must not override the transition policy.
-5. **Explicit scope:** retries/idempotency, payment reconciliation, inventory reservations, split shipments and real integration adapters are intentionally out of scope for this first demo.
+- `ALLOWED`: the event is valid and the supplied version matches.
+- `BLOCKED_INVALID_TRANSITION`: the event is not allowed from this status.
+- `NEEDS_REVIEW_UNKNOWN_VALUE`: status or event is unknown.
+- `DUPLICATE_EVENT`: the event ID is already recorded; no state change is proposed.
+- `VERSION_CONFLICT`: a new event was based on a stale version; review/reconciliation is required.
+- `INVALID_INPUT`: event ID or version metadata is missing or invalid.
+
+## Important production boundary
+
+This is a pure evaluator, not a production-grade distributed idempotency service. It does not persist processed IDs, lock records, update an order, or increment stored versions. In a real implementation, checking/recording the event ID and committing the state/version change must happen atomically (for example, with a database uniqueness constraint and conditional version update). A pre-read or in-memory collection alone cannot prevent races across multiple workers.
+
+The policy is deterministic by design. An AI agent may explain an exception, but must not invent or override the approved transition rules. The demo never triggers payment, cancellation, shipment, refund, or customer communication.
 
 ## Acceptance criteria
 
-- A valid event returns `allowed=true` and the expected next status.
-- An invalid transition returns `allowed=false` and no next status.
+- Valid events return the expected next status and proposed next version.
+- Invalid transitions return no next status or next version.
+- Duplicate event IDs are ignored without proposing another transition.
+- New events with stale versions are blocked and flagged for review.
+- Missing event IDs and invalid versions fail closed.
 - Unknown statuses/events are rejected safely.
-- Terminal states cannot transition further.
-- The evaluation is deterministic and has no network or database dependency.
+- Evaluation is deterministic and has no network or database dependency.
 
 ## Next iterations
 
-- Add event IDs and idempotency handling for duplicate messages.
-- Add version checks to detect concurrent updates.
 - Add property-based tests for the transition table.
-- Add an exception-review queue without allowing the AI layer to change the policy decision.
+- Model an atomic repository interface and concurrency race tests without connecting to a real service.
+- Add a machine-readable audit record for every decision.
+- Add evaluation metrics for detection accuracy and false positives.
