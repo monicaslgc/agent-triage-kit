@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from examples.order_lifecycle_consistency.order_lifecycle import evaluate_transition
+from agentops.order_lifecycle import evaluate_transition
 
 
 def main() -> None:
