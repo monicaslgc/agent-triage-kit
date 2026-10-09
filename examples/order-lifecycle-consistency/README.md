@@ -30,7 +30,7 @@ The demo prints seven synthetic cases, including a valid transition, invalid tra
 
 ## State machine
 
-See [workflow.mmd](./workflow.mmd) for the Mermaid source.
+See [workflow.mmd](./workflow.mmd) for the Mermaid state machine and [decision-flow.mmd](./decision-flow.mmd) for the idempotency/version decision flow.
 
 ```mermaid
 stateDiagram-v2
