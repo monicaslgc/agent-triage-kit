@@ -1,4 +1,4 @@
-# agentops-triage-kit
+# agent-triage-kit
 [![tests](https://github.com/monicaslgc/agent-triage-kit/actions/workflows/tests.yml/badge.svg)](https://github.com/monicaslgc/agent-triage-kit/actions/workflows/tests.yml)
 
 A small, dependency-free demo of a multi-agent triage and escalation pipeline. Tickets come in, get classified, get checked against known issue patterns, and either get auto-resolved or handed off to a human, with a full audit trail along the way.
@@ -92,6 +92,13 @@ Ticket T-1003: User can't log in, token expired error
 - Add a new `Agent` subclass and drop it into `Orchestrator(agents=[...])`.
 - Swap `runbook.match()` for something real, like a vector search over past incidents or a wiki API. The `InvestigatorAgent` interface doesn't need to change.
 - Implement `LLMClient` and pass `brain=` to one agent at a time as you move from rules to actual model calls, instead of doing it all at once.
+
+## Limitations and what I'd do next
+
+- The default agents are rule-based, so classification and diagnosis are only as good as the keywords and the small runbook. Unfamiliar tickets fall through to "unknown" with low confidence and are escalated, as T-1004 shows.
+- The confidence values and the auto-resolve threshold (0.7) are illustrative, not calibrated. A real deployment would tune them against labelled historical tickets.
+- The pipeline order is fixed (triage, investigate, escalate). It has no retries, parallel investigation or feedback from the humans who receive escalations.
+- Next: measure auto-resolve precision against a labelled ticket set, feed human corrections back into the runbook, and compare a real model against the rule-based baseline one agent at a time.
 
 ## License
 
