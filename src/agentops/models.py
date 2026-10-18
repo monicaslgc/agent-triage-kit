@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
 
-class Category(str, Enum):
+class Category(StrEnum):
     INFRASTRUCTURE = "infrastructure"
     INTEGRATION = "integration"
     AUTH = "auth"
@@ -30,7 +30,7 @@ class Ticket:
     title: str
     body: str
     reporter: str = "unknown"
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass
