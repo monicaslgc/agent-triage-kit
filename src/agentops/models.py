@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 
 class Severity(str, Enum):
@@ -54,7 +53,7 @@ class Report:
     actions: list[Action] = field(default_factory=list)
     resolved: bool = False
     escalated_to_human: bool = False
-    recommendation: Optional[str] = None
+    recommendation: str | None = None
 
     def add(self, action: Action) -> None:
         self.actions.append(action)

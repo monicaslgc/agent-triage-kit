@@ -1,5 +1,5 @@
-from .triage import TriageAgent
-from .investigator import InvestigatorAgent
 from .escalation import EscalationAgent
+from .investigator import InvestigatorAgent
+from .triage import TriageAgent
 
-__all__ = ["TriageAgent", "InvestigatorAgent", "EscalationAgent"]
+__all__ = ["EscalationAgent", "InvestigatorAgent", "TriageAgent"]

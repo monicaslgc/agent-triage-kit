@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from agentops import Orchestrator, Ticket  # noqa: E402
+from agentops import Orchestrator, Ticket
 
 
 def load_tickets(path: Path) -> list[Ticket]:

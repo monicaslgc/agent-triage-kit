@@ -8,9 +8,9 @@ which one produced the diagnosis, only the resulting confidence.
 
 from __future__ import annotations
 
+from .. import runbook
 from ..agent import Agent
 from ..models import Action, Report, Ticket
-from .. import runbook
 
 
 class InvestigatorAgent(Agent):

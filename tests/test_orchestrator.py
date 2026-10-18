@@ -8,7 +8,7 @@ from agentops.models import Category, Severity
 
 
 def make_ticket(**overrides) -> Ticket:
-    defaults = dict(id="T-TEST", title="", body="", reporter="test")
+    defaults = {"id": "T-TEST", "title": "", "body": "", "reporter": "test"}
     defaults.update(overrides)
     return Ticket(**defaults)
 

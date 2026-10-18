@@ -7,8 +7,8 @@ makes a decision from rules or a small in-memory knowledge base. The
 in without changing any orchestration logic.
 """
 
-from .models import Ticket, Action, Report
+from .models import Action, Report, Ticket
 from .orchestrator import Orchestrator
 
-__all__ = ["Ticket", "Action", "Report", "Orchestrator"]
+__all__ = ["Action", "Orchestrator", "Report", "Ticket"]
 __version__ = "0.1.0"
